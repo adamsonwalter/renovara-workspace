@@ -1,72 +1,33 @@
-# Renovara workspace
+# Renovara NEM Skills Package — Owner's Guide
 
-Local aggregation hub for [Renovara OSS modules](https://github.com/Renovara/).
+Version: 2.0 — 2026-06-12 | For: Walter Adamson
+Companion files: `ORCHESTRATOR.md` (routing layer), `MCP_SETUP.md` (live data connection — this environment, no CLI), `DOWNLOAD_AND_IMPLEMENTATION_PLAN.md` + `VERSIONS.md` (provenance), `CHANGELOG.md` + `DECISIONS.md` (folder history).
 
-## Modules
+## What you have
+Seven self-contained AI skill modules that turn a general-purpose assistant into a domain-aware analyst of the Australian National Electricity Market. Each bundles the three things generic AI lacks: the `external_data.nemweb` schema knowledge, NEM-specific conventions (AEST settlement time, 5-minute dispatch intervals, power vs energy, region IDs), and a disciplined question-to-table routing workflow. The practical effect is the difference between an assistant that guesses at SQL and one that writes correct queries against the right tables first time.
 
-| Module | Path | Live data |
-|--------|------|-----------|
-| `aer-market-agent` | `repos/agents/skills/aer-market-agent` | Offline (bundled AER data) |
-| `renovara_ai_nem_analyst` | `repos/agents/skills/renovara_ai_nem_analyst` | Databricks MCP |
-| `renovara_duid_report_detailed` | `repos/agents/skills/renovara_duid_report_detailed` | Databricks MCP |
-| `renovara_duid_renewable_report_detailed` | `repos/agents/skills/renovara_duid_renewable_report_detailed` | Databricks MCP |
-| `renovara_duid_constraint_analysis` | `repos/agents/skills/renovara_duid_constraint_analysis` | Databricks MCP |
-| `renovara_fcas_analyst` | `repos/agents/skills/renovara_fcas_analyst` | Databricks MCP |
-| `nem-analyst` (optional) | `repos/nem-analyst-skill/nem-analyst` | Databricks MCP |
+The package operates in two modes. In draft mode (today), it produces validated SQL, table-selection rationale, and analysis structure without touching live data — already useful for designing analyses and briefing people who do have Databricks access. In live mode (after `MCP_SETUP.md`), it executes those queries and returns answers, charts, and reports end-to-end. One module — the AER market agent — needs no connection at all and works fully now, including building PPTX reports from bundled AER data.
 
-See [DOWNLOAD_AND_IMPLEMENTATION_PLAN.md](./DOWNLOAD_AND_IMPLEMENTATION_PLAN.md) for full details.
+## Folder layout
+`skills/` holds the six installed modules from the actively developed `agents` repo and is what the orchestrator routes to. `repos/` holds pristine upstream clones (including the legacy `nem-analyst-skill`, kept as a fallback schema reference). `releases/` and `scripts/` support syncing; you never need to run the scripts — ask Claude to re-sync instead.
 
-## Quick start
+## The capability map
+General market analysis (M1) answers regional price, demand, and volatility questions and is the workhorse. The two DUID modules (M2, M3) profile individual generators — output, performance, revenue — with M3 specialised for wind and solar including capacity factors. Constraint analysis (M4) is the most commercially interesting: it separates forced curtailment (network constraints) from economic curtailment (negative prices) for semi-scheduled renewables — a distinction that drives asset valuation and dispute arguments. The FCAS module (M5) covers frequency-control ancillary services, where revenue stacking increasingly decides battery economics. The AER agent (M6) supplies regulatory and market-body context offline. M7 is legacy fallback only.
 
-```bash
-# Clone or update upstream repos
-./scripts/clone-all.sh
+## Where the leverage is
+The compounding asset isn't any single answer — it's that analysis workflows become repeatable and delegable. The opportunities stack in this order:
 
-# Install skill symlinks (default: ~/.cursor/skills)
-./scripts/install-skills.sh
+**Productised recurring reports.** A weekly volatility brief, a monthly curtailment report per wind farm, an FCAS revenue tracker — each is a one-time prompt against the orchestrator that then runs on demand, or on a schedule in this environment. What an energy consultancy bills days for becomes a re-runnable artifact.
 
-# aer-market-agent Python env (one-time)
-cd repos/agents/skills/aer-market-agent
-python3 -m venv .venv
-source .venv/bin/activate
-pip install python-pptx matplotlib openpyxl
+**Advisory wedge for your consulting practice.** Curtailment attribution (M4) and FCAS participation analysis (M5) answer questions asset owners, financiers, and developers pay for: "why did my asset earn less than forecast — was it the network or the market?" Paired with your existing diagnostic and due-diligence skills, this gives you an energy-sector DD capability generalist consultants don't carry.
 
-# Verify everything
-./scripts/verify.sh
-```
+**A template for vertical AI packages.** Renovara's structure — schema references + routing rules + workflow per skill — is exactly the pattern for converting any data-rich domain into a skills package. Operating this one teaches you to build equivalents for clients on their own warehouses.
 
-## aer-market-agent (offline)
+## How to use it, day one
+Start a session, reference `ORCHESTRATOR.md`, and ask a market question in plain English ("compare SA and VIC price volatility this quarter", "how much was Snowtown curtailed last month and why"). The orchestrator routes, the module governs the SQL, and every figure is tagged CONFIRMED/DRAFT so you know whether it came from live data. Until the MCP is connected, treat outputs as analysis designs; after connection, as answers.
 
-```bash
-cd repos/agents/skills/aer-market-agent
-source .venv/bin/activate
-python scripts/build_report.py --out /tmp/DMO-Report.pptx
-python scripts/query.py domains
-python scripts/query.py search "network revenue"
-```
+## Maintenance
+The `agents` repo is actively developed (last update Jun 2026) — ask Claude to re-sync monthly against the SHAs in `VERSIONS.md`; the legacy repo quarterly. Both are MIT-licensed, so embedding in client deliverables is permitted with attribution. Record every folder change in `CHANGELOG.md` and every non-obvious choice in `DECISIONS.md`.
 
-## NEM skills (Databricks MCP)
-
-NEM skills need the Renovara Databricks SQL MCP server. Copy `.env.example` to `.env` and fill in credentials, then configure MCP in Cursor.
-
-Expected MCP tools:
-
-- `mcp__renovara-sql__execute_sql_read_only`
-- `mcp__renovara-sql__execute_sql`
-- `mcp__renovara-sql__poll_sql_result`
-
-Smoke-test prompt once MCP is configured:
-
-```
-Show average NSW1 RRP by hour for the last 7 days.
-```
-
-Without MCP, skills still provide schema guidance and SQL drafts.
-
-## Update
-
-```bash
-./scripts/clone-all.sh
-./scripts/install-skills.sh
-./scripts/verify.sh
-```
+## The one thing to build today
+Connect the MCP (Option A in `MCP_SETUP.md`) and run the smoke test — average NSW1 RRP by hour, last 7 days. Every opportunity above is gated behind live mode; a working connection today compounds into every report, brief, and client engagement that follows.

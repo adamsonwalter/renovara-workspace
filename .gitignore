@@ -5,3 +5,5 @@ skills/
 **/.venv/
 **/__pycache__/
 *.pptx
+.DS_Store
+databricks.env
