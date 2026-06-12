@@ -1,0 +1,7 @@
+.env
+releases/
+repos/
+skills/
+**/.venv/
+**/__pycache__/
+*.pptx
